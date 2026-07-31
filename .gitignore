@@ -1,0 +1,3 @@
+# Real placeholder values must never be committed
+placeholders.yml
+*.local.yml

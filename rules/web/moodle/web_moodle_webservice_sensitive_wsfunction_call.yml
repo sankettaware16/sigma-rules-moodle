@@ -1,0 +1,65 @@
+title: Moodle Web Service Call To Sensitive User Data Function
+id: feefc5bb-92ea-4e70-8eb0-567a9eb60dbe
+name: moodle_webservice_sensitive_wsfunction
+status: experimental
+description: |
+    Detects calls to Moodle web service functions that return bulk user, enrolment or grade data.
+    Individual calls are normal for the mobile app and for SIS integrations, so this rule is intended
+    as a building block for the correlation rule below rather than as a standalone alert.
+    A stolen or over-privileged web service token gives an attacker a clean, paginated interface to
+    every user record on the site, which makes these functions a natural first stop after token theft.
+references:
+    - https://docs.moodle.org/en/Web_services
+    - https://docs.moodle.org/dev/Web_service_API_functions
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+tags:
+    - attack.collection
+    - attack.t1213
+logsource:
+    category: webserver
+detection:
+    selection_endpoint:
+        cs-uri-stem|endswith: '/webservice/rest/server.php'
+    selection_function:
+        cs-uri-query|contains:
+            - 'wsfunction=core_enrol_get_enrolled_users'
+            - 'wsfunction=core_user_get_users'
+            - 'wsfunction=core_user_get_users_by_field'
+            - 'wsfunction=core_user_get_user_preferences'
+            - 'wsfunction=core_course_get_enrolled_users_by_cmid'
+            - 'wsfunction=gradereport_user_get_grades_table'
+            - 'wsfunction=gradereport_user_get_grade_items'
+    condition: all of selection_*
+falsepositives:
+    - Student information system, HR or identity provisioning syncs that enumerate enrolments on a schedule
+    - Learning analytics and reporting tools that pull grade tables in bulk
+    - The Moodle mobile app requests grade data for the signed-in user
+level: low
+---
+title: Moodle Bulk Personal Data Collection Via Web Service API
+id: 956fce25-b5cb-41c6-982e-24842c2690fa
+status: experimental
+description: |
+    Detects a high rate of Moodle web service calls to functions that return user, enrolment or grade
+    records from a single source address. This is the access pattern of an attacker walking the user
+    table with a valid token, and it is how personal data leaves a Moodle site at scale.
+references:
+    - https://docs.moodle.org/en/Web_services
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+correlation:
+    type: event_count
+    rules:
+        - moodle_webservice_sensitive_wsfunction
+    group-by:
+        - c-ip
+    timespan: 5m
+    condition:
+        gte: 20
+tags:
+    - attack.collection
+    - attack.t1213
+falsepositives:
+    - Scheduled integration jobs - baseline the source addresses of known integrations and filter them
+level: high

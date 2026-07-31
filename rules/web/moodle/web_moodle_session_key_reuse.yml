@@ -1,0 +1,56 @@
+title: Moodle Request Carrying Session Key Parameter
+id: 18c58c68-19bc-43e5-a052-46358cf77eb3
+name: moodle_request_with_sesskey
+status: experimental
+description: |
+    Base rule. Matches Moodle requests carrying the per-session sesskey CSRF token in the query string.
+    Not intended to alert on its own - it exists to feed the correlation rule below.
+references:
+    - https://docs.moodle.org/dev/Sesskey
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+tags:
+    - attack.credential-access
+    - attack.t1539
+logsource:
+    category: webserver
+detection:
+    selection:
+        cs-uri-query|contains: 'sesskey='
+    condition: selection
+falsepositives:
+    - Unknown
+level: informational
+---
+title: Moodle Session Key Observed From Multiple Source Addresses
+id: f40ee2ed-47fe-44f7-b92a-e0eb9221c58c
+status: experimental
+description: |
+    Detects the same Moodle sesskey value being presented from several different source addresses in a
+    short window, which is the signature of a hijacked session - the token has been captured and replayed
+    from somewhere other than where it was issued.
+    Note on deployment - grouping here is on the raw query string, which only groups requests whose full
+    query is identical. For accurate results extract the sesskey value into a dedicated field in your
+    ingest pipeline and change group-by to that field. See README for a worked example.
+references:
+    - https://docs.moodle.org/dev/Sesskey
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+correlation:
+    type: value_count
+    rules:
+        - moodle_request_with_sesskey
+    group-by:
+        - cs-uri-query
+    timespan: 30m
+    condition:
+        gte: 3
+        field: c-ip
+tags:
+    - attack.credential-access
+    - attack.t1539
+falsepositives:
+    - Dual stack clients alternating between IPv4 and IPv6
+    - Mobile clients roaming between networks
+    - Carrier grade NAT and campus egress pools where a single user appears as several addresses
+level: high

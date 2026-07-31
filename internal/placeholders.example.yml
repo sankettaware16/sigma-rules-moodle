@@ -1,0 +1,7 @@
+# Example placeholder values consumed by the rules under internal/.
+# Keep the real version of this file out of any public repository.
+moodle_approved_countries:
+  - 'XX'
+moodle_monitoring_sources:
+  - '203.0.113.10'
+  - '203.0.113.11'

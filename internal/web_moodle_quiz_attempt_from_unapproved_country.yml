@@ -1,0 +1,37 @@
+# INTERNAL ONLY - do not submit upstream.
+# Geolocation is not part of the Sigma webserver taxonomy, so this rule uses ECS field names directly
+# and a placeholder for the approved country list. Convert with a pipeline that supplies the placeholder.
+title: Moodle Quiz Attempt From Unapproved Country
+id: 625efa7e-6781-4fed-9826-b4c403f1d9ae
+status: experimental
+description: |
+    Detects access to the Moodle quiz attempt endpoint from a country outside the institution's approved
+    list. Intended as an academic integrity signal - proxy assisted exam sitting or credential sharing
+    with a third party - not as a security detection. This is institutional policy encoded as a rule and
+    is not portable between organisations.
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+taxonomy: ecs
+tags:
+    - attack.initial-access
+    - attack.t1078
+logsource:
+    category: webserver
+detection:
+    selection:
+        url.path|endswith: '/mod/quiz/attempt.php'
+    filter_main_approved_country:
+        source.geo.country_iso_code|expand: '%moodle_approved_countries%'
+    filter_main_internal:
+        source.ip|cidr:
+            - '10.0.0.0/8'
+            - '172.16.0.0/12'
+            - '192.168.0.0/16'
+    filter_main_no_geo:
+        source.geo.country_iso_code: null
+    condition: selection and not 1 of filter_main_*
+falsepositives:
+    - Students on approved exchange, fieldwork or international travel - cross check the academic calendar and any approved absence register before acting
+    - Commercial VPN exit nodes used for ordinary privacy reasons
+    - Inaccurate geolocation for mobile carrier ranges
+level: medium

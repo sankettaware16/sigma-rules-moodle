@@ -1,0 +1,53 @@
+title: Moodle AJAX Service Endpoint Request
+id: 40c0fb8d-4d2b-4f97-b741-65c475b04d3b
+name: moodle_ajax_service_request
+status: experimental
+description: |
+    Base rule matching requests to Moodle's AJAX service endpoints. Feeds the correlation rule below.
+references:
+    - https://docs.moodle.org/dev/Web_services_API
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+tags:
+    - attack.impact
+    - attack.t1499.002
+logsource:
+    category: webserver
+detection:
+    selection:
+        cs-uri-stem|endswith:
+            - '/lib/ajax/service.php'
+            - '/lib/ajax/service-nologin.php'
+    condition: selection
+falsepositives:
+    - Normal interactive use of the Moodle interface
+level: informational
+---
+title: Moodle AJAX Service Endpoint Flooded From Single Source
+id: a07146a1-c57f-42c4-ac00-421006561bdc
+status: experimental
+description: |
+    Detects a very high request rate against Moodle's AJAX service endpoints from one source address.
+    These endpoints dispatch to arbitrary registered service methods and are relatively expensive per
+    request, which makes them a practical target for application layer resource exhaustion as well as a
+    convenient channel for scripted enumeration of service methods.
+references:
+    - https://docs.moodle.org/dev/Web_services_API
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+correlation:
+    type: event_count
+    rules:
+        - moodle_ajax_service_request
+    group-by:
+        - c-ip
+    timespan: 2m
+    condition:
+        gte: 200
+tags:
+    - attack.impact
+    - attack.t1499.002
+falsepositives:
+    - Shared campus or corporate NAT egress addresses - this rule needs its threshold raised or those ranges excluded in any environment where many users share one public address
+    - Load testing and synthetic monitoring
+level: medium

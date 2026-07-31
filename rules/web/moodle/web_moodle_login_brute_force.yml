@@ -1,0 +1,56 @@
+title: Moodle Failed Login Attempt
+id: 6c4e8e54-20db-4807-bb19-de3e8a6bf42f
+name: moodle_failed_login_attempt
+status: experimental
+description: |
+    Base rule matching unsuccessful POST requests to the Moodle login endpoint.
+    Important - Moodle answers a failed login with HTTP 200 and re-renders the login form carrying an
+    error message, and answers a successful login with a 30x redirect to the dashboard. Rules that look
+    for 401 or 403 on this endpoint will not fire. The status code below is deliberately 200.
+references:
+    - https://docs.moodle.org/en/Managing_authentication
+    - https://docs.moodle.org/en/Site_policies
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+tags:
+    - attack.credential-access
+    - attack.t1110.001
+logsource:
+    category: webserver
+detection:
+    selection:
+        cs-method: 'POST'
+        cs-uri-stem|endswith: '/login/index.php'
+        sc-status: 200
+    condition: selection
+falsepositives:
+    - Users mistyping a password
+level: informational
+---
+title: Moodle Login Brute Force From Single Source
+id: 2d1545fb-015a-4ee1-90f5-55a50a34a8ce
+status: experimental
+description: |
+    Detects a burst of failed logins against the Moodle login endpoint from one source address.
+    Moodle's own account lockout applies per account, so an attacker spreading attempts across many
+    accounts from one host stays under it - the source address is the reliable grouping key.
+references:
+    - https://docs.moodle.org/en/Managing_authentication
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+correlation:
+    type: event_count
+    rules:
+        - moodle_failed_login_attempt
+    group-by:
+        - c-ip
+    timespan: 5m
+    condition:
+        gte: 15
+tags:
+    - attack.credential-access
+    - attack.t1110.001
+falsepositives:
+    - Institutional NAT or proxy egress addresses shared by a large user population - tune the threshold per environment or exclude known egress ranges
+    - Misconfigured clients retrying a stale password
+level: medium

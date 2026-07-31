@@ -1,0 +1,40 @@
+title: Moodle Administration Interface Accessed From External Address
+id: b4548948-7050-469d-bb83-69eee3f94ebc
+status: experimental
+description: |
+    Detects successful access to Moodle's site administration interface from an address outside RFC1918
+    space. Moodle's documentation recommends restricting administrative access by network where
+    practical. Site administrators can install plugins, which is an unrestricted path to code execution
+    on the server, so administrative access from an unexpected location is worth confirming.
+    This rule is policy dependent - see falsepositives. In environments where administrators
+    legitimately work remotely it should be scoped to an allowlist rather than to RFC1918 space.
+references:
+    - https://docs.moodle.org/en/Site_security_settings
+    - https://docs.moodle.org/en/Security_recommendations
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+tags:
+    - attack.initial-access
+    - attack.t1078
+logsource:
+    category: webserver
+detection:
+    selection:
+        cs-uri-stem|contains: '/admin/'
+        sc-status: 200
+    filter_main_internal:
+        c-ip|cidr:
+            - '127.0.0.0/8'
+            - '10.0.0.0/8'
+            - '172.16.0.0/12'
+            - '192.168.0.0/16'
+    filter_optional_unauthenticated_endpoints:
+        cs-uri-stem|endswith:
+            - '/admin/oauth2callback.php'
+            - '/admin/tool/mobile/launch.php'
+    condition: selection and not 1 of filter_*
+falsepositives:
+    - Administrators working remotely or over VPN split tunnelling
+    - Reverse proxies that do not preserve the original client address will suppress this rule entirely rather than trigger it
+    - Sites that are administered entirely from the public internet, where this rule is not applicable
+level: medium

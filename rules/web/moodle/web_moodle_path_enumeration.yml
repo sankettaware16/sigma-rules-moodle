@@ -1,0 +1,63 @@
+title: Moodle Path Returning Not Found
+id: 8cbd1be0-e155-41b9-9676-bcd2bc87041f
+name: moodle_path_not_found
+status: experimental
+description: |
+    Base rule matching 404 responses on Moodle application paths. Feeds the enumeration correlation below.
+references:
+    - https://docs.moodle.org/en/Security_recommendations
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+tags:
+    - attack.reconnaissance
+    - attack.t1595.003
+logsource:
+    category: webserver
+detection:
+    selection_status:
+        sc-status: 404
+    selection_path:
+        cs-uri-stem|contains:
+            - '/admin/'
+            - '/blocks/'
+            - '/course/'
+            - '/local/'
+            - '/mod/'
+            - '/pluginfile.php'
+            - '/theme/'
+            - '/user/'
+            - '/webservice/'
+    condition: all of selection_*
+falsepositives:
+    - Stale bookmarks and deleted course content
+level: informational
+---
+title: Moodle Plugin And Path Enumeration
+id: aae1b277-7ad0-41bc-9e96-23715286d83b
+status: experimental
+description: |
+    Detects a source address generating a large number of 404s across Moodle application paths, which is
+    how automated tooling fingerprints which plugins and versions a site has installed before selecting
+    an exploit. Moodle's plugin surface is very large and third party plugins are the usual weak point,
+    so plugin enumeration is a meaningful precursor signal.
+references:
+    - https://docs.moodle.org/en/Security_recommendations
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+correlation:
+    type: event_count
+    rules:
+        - moodle_path_not_found
+    group-by:
+        - c-ip
+    timespan: 5m
+    condition:
+        gte: 30
+tags:
+    - attack.reconnaissance
+    - attack.t1595.003
+falsepositives:
+    - Authorised vulnerability scanning - exclude the scanner source addresses
+    - Broken link checkers and site crawlers
+    - Shared NAT egress addresses aggregating many users' stale links
+level: medium

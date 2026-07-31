@@ -1,0 +1,31 @@
+# INTERNAL ONLY - do not submit upstream.
+# Replace the placeholder with your own monitoring source addresses via a pipeline.
+title: Monitoring Agent User Agent From Unexpected Source Address
+id: 2d0a6a10-4f6f-4dbb-9d0e-1f9b3b0f1d3e
+status: experimental
+description: |
+    Detects requests presenting a known monitoring or probe user agent from an address that is not one of
+    the approved monitoring hosts. A spoofed monitoring user agent is a cheap way for an attacker to make
+    scripted traffic blend into a baseline that analysts have learned to ignore.
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+taxonomy: ecs
+tags:
+    - attack.discovery
+    - attack.t1518
+logsource:
+    category: webserver
+detection:
+    selection:
+        user_agent.original|contains:
+            - 'Blackbox Exporter'
+            - 'BlackboxExporter'
+            - 'Prometheus'
+            - 'check_http'
+            - 'Zabbix'
+    filter_main_known_monitors:
+        source.ip|expand: '%moodle_monitoring_sources%'
+    condition: selection and not 1 of filter_main_*
+falsepositives:
+    - A newly commissioned monitoring host that has not been added to the placeholder list
+level: medium

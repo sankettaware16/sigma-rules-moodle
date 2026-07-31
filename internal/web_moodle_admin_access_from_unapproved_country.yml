@@ -1,0 +1,36 @@
+# INTERNAL ONLY - do not submit upstream.
+title: Moodle Administration Access From Unapproved Country
+id: ac7f6e5d-dc0f-46eb-a586-8c78b6176a67
+status: experimental
+description: |
+    Detects successful access to the Moodle site administration interface from a country outside the
+    institution's approved list. Policy dependent and not portable between organisations.
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+taxonomy: ecs
+tags:
+    - attack.initial-access
+    - attack.t1078
+logsource:
+    category: webserver
+detection:
+    selection:
+        url.path|contains: '/admin/'
+        http.response.status_code: 200
+    filter_main_approved_country:
+        source.geo.country_iso_code|expand: '%moodle_approved_countries%'
+    filter_main_internal:
+        source.ip|cidr:
+            - '10.0.0.0/8'
+            - '172.16.0.0/12'
+            - '192.168.0.0/16'
+    filter_main_no_geo:
+        source.geo.country_iso_code: null
+    filter_optional_unauthenticated_endpoints:
+        url.path|endswith:
+            - '/admin/oauth2callback.php'
+            - '/admin/tool/mobile/launch.php'
+    condition: selection and not 1 of filter_*
+falsepositives:
+    - Administrators travelling or working abroad
+level: high

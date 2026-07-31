@@ -1,0 +1,60 @@
+title: Moodle Web Service Endpoint Returning Server Error
+id: f1caaa3b-3ca4-4690-80de-641e8c3a8818
+name: moodle_webservice_server_error
+status: experimental
+description: |
+    Base rule matching 5xx responses from the Moodle web service endpoint.
+    The REST server normally returns HTTP 200 with a JSON exception body even for bad input, so a
+    genuine 5xx means the request reached something that broke - which is what fuzzing and injection
+    attempts look like before they succeed.
+references:
+    - https://docs.moodle.org/en/Web_services
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+tags:
+    - attack.initial-access
+    - attack.t1190
+logsource:
+    category: webserver
+detection:
+    selection:
+        cs-uri-stem|endswith:
+            - '/webservice/rest/server.php'
+            - '/webservice/soap/server.php'
+            - '/webservice/xmlrpc/server.php'
+        sc-status:
+            - 500
+            - 501
+            - 502
+            - 503
+            - 504
+    condition: selection
+falsepositives:
+    - Backend outages, database failures or PHP fatal errors from a buggy plugin
+level: low
+---
+title: Repeated Server Errors On Moodle Web Service Endpoint
+id: 28a7f27c-89b3-45e0-b1e1-9c072bed5cb2
+status: experimental
+description: |
+    Detects repeated 5xx responses from the Moodle web service endpoint driven by a single source
+    address, consistent with parameter fuzzing or exploitation attempts against a web service function.
+references:
+    - https://docs.moodle.org/en/Web_services
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+correlation:
+    type: event_count
+    rules:
+        - moodle_webservice_server_error
+    group-by:
+        - c-ip
+    timespan: 5m
+    condition:
+        gte: 10
+tags:
+    - attack.initial-access
+    - attack.t1190
+falsepositives:
+    - A platform-wide outage will trigger this for every active client at once - correlate against the number of distinct affected sources before escalating
+level: high

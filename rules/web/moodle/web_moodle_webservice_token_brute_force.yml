@@ -1,0 +1,55 @@
+title: Moodle Web Service Token Request
+id: 52bc6684-4dbd-4efa-9e0f-0dded04a2b2c
+name: moodle_webservice_token_request
+status: experimental
+description: |
+    Base rule matching requests to Moodle's web service token endpoint.
+    Note - this endpoint returns HTTP 200 with a JSON error body when credentials are wrong, so status
+    code filtering does not separate success from failure in access logs. Request rate is the usable
+    signal, which is what the correlation rule below keys on.
+references:
+    - https://docs.moodle.org/en/Web_services
+    - https://docs.moodle.org/dev/Creating_a_web_service_client
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+tags:
+    - attack.credential-access
+    - attack.t1110
+logsource:
+    category: webserver
+detection:
+    selection:
+        cs-uri-stem|endswith: '/login/token.php'
+    condition: selection
+falsepositives:
+    - Mobile app sign in and integration clients acquiring a token
+level: informational
+---
+title: Moodle Web Service Token Brute Force
+id: b9fcc22b-7cb4-4aed-8ddd-6024de2e4939
+status: experimental
+description: |
+    Detects a high rate of requests to Moodle's web service token endpoint from a single source.
+    This endpoint accepts a username and password and returns a long lived token, and it is not
+    covered by the interactive login form's protections, which makes it the most attractive
+    credential attack surface on a Moodle site.
+references:
+    - https://docs.moodle.org/en/Web_services
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+correlation:
+    type: event_count
+    rules:
+        - moodle_webservice_token_request
+    group-by:
+        - c-ip
+    timespan: 10m
+    condition:
+        gte: 20
+tags:
+    - attack.credential-access
+    - attack.t1110
+falsepositives:
+    - An integration client with a broken token cache re-authenticating in a loop
+    - Shared NAT egress addresses during a peak mobile app sign in period
+level: high

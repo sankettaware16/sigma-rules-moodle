@@ -1,0 +1,57 @@
+title: Moodle Assignment Submission File Download
+id: e3ae55b0-ccb2-46aa-a6b5-d94f2809c799
+name: moodle_assignment_submission_download
+status: experimental
+description: |
+    Base rule matching successful downloads of individual assignment submission files. Feeds the
+    correlation rule below.
+references:
+    - https://docs.moodle.org/en/Assignment_settings
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+tags:
+    - attack.collection
+    - attack.t1213
+logsource:
+    category: webserver
+detection:
+    selection:
+        cs-uri-stem|contains:
+            - '/assignsubmission_file/submission_files/'
+            - '/assignfeedback_file/feedback_files/'
+        sc-status: 200
+    condition: selection
+falsepositives:
+    - Teaching staff opening submissions individually while marking
+level: informational
+---
+title: Bulk Retrieval Of Moodle Assignment Submissions
+id: c4e12a54-71dd-46bb-9213-1786714a6a40
+status: experimental
+description: |
+    Detects a source address retrieving a large number of individual assignment submission files in a
+    short window. Submissions contain student work and frequently personal data, and this is what
+    scripted harvesting of a cohort's coursework looks like.
+    Moodle's own download all submissions feature produces a single archive through a different code
+    path, so a high volume of per-file requests is not the shape normal marking activity takes.
+references:
+    - https://docs.moodle.org/en/Assignment_settings
+author: Sanket Taware (@sankettaware16)
+date: 2026-07-31
+correlation:
+    type: event_count
+    rules:
+        - moodle_assignment_submission_download
+    group-by:
+        - c-ip
+    timespan: 5m
+    condition:
+        gte: 50
+tags:
+    - attack.collection
+    - attack.t1213
+falsepositives:
+    - Plagiarism detection integrations that fetch submissions individually
+    - Backup or migration tooling walking the file area
+    - A marker working through a very large cohort - check whether the source address matches known staff activity
+level: medium
